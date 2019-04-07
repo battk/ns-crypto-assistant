@@ -1,0 +1,16 @@
+{
+	"extends": ["eslint:recommended", "prettier"],
+	"env": {
+		"amd": true,
+		"mocha": true,
+		"node": true,
+		"browser": true
+	},
+	"globals": {
+		"log": false,
+		"util": false
+	},
+	"rules": {
+		"no-unused-vars": ["warn", { "args": "none" }]
+	}
+}

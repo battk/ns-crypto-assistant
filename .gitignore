@@ -59,3 +59,15 @@ typings/
 
 # next.js build output
 .next
+
+# ide
+*.iml
+*.eml
+.project
+.idea/
+.settings/
+.classpath
+
+# sdf
+.sdf
+sdf-cli/
