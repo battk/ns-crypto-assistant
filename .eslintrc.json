@@ -8,7 +8,8 @@
 	},
 	"globals": {
 		"log": false,
-		"util": false
+		"util": false,
+		"Promise": true
 	},
 	"rules": {
 		"no-unused-vars": ["warn", { "args": "none" }]

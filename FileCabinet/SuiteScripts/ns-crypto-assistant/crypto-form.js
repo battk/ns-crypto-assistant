@@ -6,19 +6,26 @@
 define([
 	'N/ui/serverWidget',
 	'N/error',
-	'N/url',
 	'N/search',
 	'./src/form-request-factory',
 	'./lib/crypto-metadata',
+	'./lib/serverWidget-util',
 	'./vendor/qs/qs',
 ], function(
 	serverWidget,
 	error,
-	url,
 	search,
 	formRequestFactory,
 	metadata,
+	serverWidgetUtil,
 	qs
 ) {
-	return formRequestFactory(serverWidget, error, url, search, metadata, qs);
+	return formRequestFactory(
+		serverWidget,
+		error,
+		search,
+		metadata,
+		serverWidgetUtil,
+		qs
+	);
 });

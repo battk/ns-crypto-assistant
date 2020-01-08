@@ -1,40 +1,15 @@
 define([
 	'../src/form-client-factory',
 	'../lib/crypto-metadata',
+	'./stubs/ns-module-stubs',
 	'chai',
-	'sinon',
-], function(formClientFactory, metadata, chai, sinon) {
+], function(formClientFactory, metadata, nsModuleStubs, chai) {
 	var fieldIds = metadata.fieldIds;
 	var scriptIds = metadata.scriptIds;
 	var deploymentIds = metadata.deploymentIds;
 	var expect = chai.expect;
-
-	function UrlStub(redirectUrl) {
-		this.resolveScript = sinon.stub().returns(redirectUrl);
-	}
-
-	function CurrentRecordStub(fields) {
-		fields = fields || {};
-
-		var bodyFields = Object.keys(fields).reduce(function(bodyFields, fieldId) {
-			bodyFields[fieldId] = fields[fieldId];
-
-			return bodyFields;
-		}, {});
-
-		this.getValue = sinon.stub().callsFake(function(options) {
-			var fieldId = options.fieldId;
-
-			return bodyFields[fieldId];
-		});
-
-		this.setValue = sinon.stub().callsFake(function(options) {
-			var fieldId = options.fieldId;
-			var value = options.value;
-
-			bodyFields[fieldId] = value;
-		});
-	}
+	var CurrentRecordStub = nsModuleStubs.CurrentRecordStub;
+	var UrlStub = nsModuleStubs.UrlStub;
 
 	describe('form-client-factory', function() {
 		describe('on fieldChanged', function() {

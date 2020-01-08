@@ -6,12 +6,19 @@ define([], function() {
 	/**
 	 * @param {serverWidget} serverWidget
 	 * @param {error} error
-	 * @param {url} url
 	 * @param {search} search
 	 * @param {module:crypto-metadata} metadata
+	 * @param {module:serverWidget-util} serverWidgetUtil
 	 * @param {Qs} qs
 	 */
-	function formRequestFactory(serverWidget, error, url, search, metadata, qs) {
+	function formRequestFactory(
+		serverWidget,
+		error,
+		search,
+		metadata,
+		serverWidgetUtil,
+		qs
+	) {
 		/**
 		 * @param {suiteletContext} params
 		 * @param {ServerRequest} params.request
@@ -46,100 +53,53 @@ define([], function() {
 				return scriptIds;
 			}
 
-			function addPrimaryInformationFieldGroup(form) {
-				var primaryInformationFieldGroup = form.addFieldGroup({
-					id: fieldGroupIds.primaryInformation,
-					label: 'Primary Information',
-				});
-				primaryInformationFieldGroup.isBorderHidden = false;
-				primaryInformationFieldGroup.isSingleColumn = true;
-
-				return primaryInformationFieldGroup;
-			}
-
-			function addSecretKeyField(form, parameters) {
-				var restrictToScriptInternalIds =
-					parameters[sublistIds.restrictToScriptIds];
-				var restrictToCurrentUser =
-					parameters[fieldIds.restrictToCurrentUser] === 'T';
-				var maxLength = parseInt(parameters[fieldIds.maxLength], 10);
-				var restrictToScriptIds = getScriptIds(restrictToScriptInternalIds);
-
-				var secretKeyField = form.addSecretKeyField({
-					id: fieldIds.secretKey,
-					label: 'Secret Key',
-					restrictToScriptIds: restrictToScriptIds,
-					restrictToCurrentUser: restrictToCurrentUser,
-					container: fieldGroupIds.primaryInformation,
-				});
-				secretKeyField.maxLength = maxLength;
-				secretKeyField.setHelpText({
-					help:
-						'Set the secret key into this field. NetSuite will replace the ' +
-						'value of this field with a GUID when the field loses focus.',
-				});
-			}
-
-			function addCredentialField(form, parameters) {
-				var restrictToScriptInternalIds =
-					parameters[sublistIds.restrictToScriptIds];
-				var restrictToDomains = parameters[sublistIds.restrictToDomains];
-				var restrictToCurrentUser =
-					parameters[fieldIds.restrictToCurrentUser] === 'T';
-				var maxLength = parseInt(parameters[fieldIds.maxLength], 10);
-				var restrictToScriptIds = getScriptIds(restrictToScriptInternalIds);
-
-				var credentialField = form.addCredentialField({
-					id: fieldIds.credential,
-					label: 'Credential',
-					restrictToScriptIds: restrictToScriptIds,
-					restrictToDomains: restrictToDomains,
-					restrictToCurrentUser: restrictToCurrentUser,
-					container: fieldGroupIds.primaryInformation,
-				});
-				credentialField.maxLength = maxLength;
-				credentialField.setHelpText({
-					help:
-						'Set the credential into this field. NetSuite will replace the ' +
-						'value of this field with a GUID when the field loses focus.',
-				});
-			}
-
-			function addGuidField(form) {
-				var guidField = form.addField({
-					id: fieldIds.guid,
-					label: 'GUID',
-					type: serverWidget.FieldType.TEXT,
-					container: fieldGroupIds.primaryInformation,
-				});
-
-				guidField.setHelpText({
-					help:
-						'The GUID will appear here after a value is set in the ' +
-						'credential or secret key field',
-				});
-				guidField.updateDisplayType({
-					displayType: serverWidget.FieldDisplayType.INLINE,
-				});
-			}
-
-			// use qs to avoid NetSuite's suitelet's wrong query string parsing
+			// use qs to avoid NetSuite's suitelet's wrong query string array parsing
 			var parameters = qs.parse(qs.stringify(params.request.parameters));
 
-			var form = serverWidget.createForm({
+			var form = serverWidgetUtil.createForm(serverWidget, {
 				title: 'Crypto Form',
 				hideNavBar: false,
+				clientScriptModulePath: '../crypto-form-client',
 			});
-			form.clientScriptModulePath = '../crypto-form-client';
-			addPrimaryInformationFieldGroup(form);
+
+			serverWidgetUtil.addFieldGroup(form, {
+				id: fieldGroupIds.primaryInformation,
+				label: 'Primary Information',
+				isSingleColumn: true,
+			});
 
 			var fieldType = parameters[fieldIds.fieldType];
 			switch (fieldType) {
 				case fieldTypeValues.credentialField:
-					addCredentialField(form, parameters);
+					serverWidgetUtil.addCredentialField(form, {
+						id: fieldIds.credential,
+						label: 'Credential',
+						restrictToScriptIds: getScriptIds(
+							parameters[sublistIds.restrictToScriptIds]
+						),
+						restrictToDomains: parameters[sublistIds.restrictToDomains],
+						restrictToCurrentUser:
+							parameters[fieldIds.restrictToCurrentUser] === 'T',
+						container: fieldGroupIds.primaryInformation,
+						maxLength: parseInt(parameters[fieldIds.maxLength], 10),
+						help:
+							'Set the credential into this field. NetSuite will replace the value of this field with a GUID when the field loses focus.',
+					});
 					break;
 				case fieldTypeValues.secretKeyField:
-					addSecretKeyField(form, parameters);
+					serverWidgetUtil.addSecretKeyField(form, {
+						id: fieldIds.secretKey,
+						label: 'Secret Key',
+						restrictToScriptIds: getScriptIds(
+							parameters[sublistIds.restrictToScriptIds]
+						),
+						restrictToCurrentUser:
+							parameters[fieldIds.restrictToCurrentUser] === 'T',
+						container: fieldGroupIds.primaryInformation,
+						maxLength: parseInt(parameters[fieldIds.maxLength], 10),
+						help:
+							'Set the secret key into this field. NetSuite will replace the value of this field with a GUID when the field loses focus.',
+					});
 					break;
 				default:
 					throw error.create({
@@ -148,9 +108,18 @@ define([], function() {
 					});
 			}
 
-			addGuidField(form);
-			form.addResetButton({ label: 'Reset Form' });
-			form.addButton({
+			serverWidgetUtil.addField(form, {
+				id: fieldIds.guid,
+				label: 'GUID',
+				type: serverWidget.FieldType.TEXT,
+				container: fieldGroupIds.primaryInformation,
+				help:
+					'The GUID will appear here after a value is set in the credential or secret key field',
+				displayType: serverWidget.FieldDisplayType.INLINE,
+			});
+
+			serverWidgetUtil.addResetButton(form, { label: 'Reset Form' });
+			serverWidgetUtil.addButton(form, {
 				id: buttonIds.restartAssistant,
 				label: 'Restart Crypto Assistant',
 				functionName: 'restartCryptoAssistant',

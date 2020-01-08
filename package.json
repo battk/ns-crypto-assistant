@@ -2,12 +2,6 @@
 	"name": "ns-crypto-assistant",
 	"version": "0.0.1",
 	"dependencies": {
-		"mocha": "^7.0.0",
-		"qs": "^6.9.1",
-		"sinon": "^8.0.2",
-		"sinon-chai": "^3.4.0"
-	},
-	"devDependencies": {
 		"chai": "^4.2.0",
 		"define": "^1.0.1",
 		"eslint-config-prettier": "^6.9.0",
@@ -16,6 +10,10 @@
 		"gulp-if": "^3.0.0",
 		"gulp-ignore": "^3.0.0",
 		"gulp-mocha": "^7.0.2",
-		"gulp-prettier": "^2.3.0"
+		"gulp-prettier": "^2.3.0",
+		"lodash": "^4.17.15",
+		"qs": "^6.9.1",
+		"sinon": "^8.0.4",
+		"through2": "^3.0.1"
 	}
 }

@@ -1,14 +1,12 @@
 /**
  * @NApiVersion 2.0
  * @NModuleScope SameAccount
- * @module form-client-factory
  */
 define([], function() {
 	/**
 	 * @param {window} window
 	 * @param {url} url
 	 * @param {module:crypto-metadata} metadata
-	 * @alias module:form-client-factory
 	 */
 	function formClientFactory(window, url, metadata) {
 		var scriptIds = metadata.scriptIds;

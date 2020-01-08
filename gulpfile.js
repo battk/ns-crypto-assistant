@@ -1,9 +1,11 @@
 var gulp = require('gulp');
-var spawn = require('child_process').spawn;
 var gulpIf = require('gulp-if');
 var prettier = require('gulp-prettier');
 var eslint = require('gulp-eslint');
 var gulpIgnore = require('gulp-ignore');
+var sdfcliTasks = require('./tasks/sdfcli-tasks');
+var deploy = sdfcliTasks.deploy;
+
 // define module is questionable. order its loaded in matters
 require('define');
 var gulpMocha = require('gulp-mocha');
@@ -14,9 +16,10 @@ var projectLocation = 'FileCabinet/SuiteScripts/ns-crypto-assistant/';
 var entryPointLocation = projectLocation + '*.js';
 var srcLocations = [
 	'*.js',
+	'tasks/*.js',
 	projectLocation + 'src/*.js',
 	projectLocation + 'lib/*.js',
-	projectLocation + 'spec/*.js',
+	projectLocation + 'spec/**/*.js',
 	entryPointLocation,
 ];
 var configLocations = ['*.json'];
@@ -49,14 +52,6 @@ function dev() {
 	);
 }
 
-function deploy() {
-	return spawn(
-		'java',
-		['-jar', 'sdf-cli/cli-2019.2.1.jar', 'deploy', '-np', '-sw', '-p', '.'],
-		{ stdio: 'inherit' }
-	);
-}
-
 function watch() {
 	gulp.watch(
 		srcLocations.concat(configLocations),
@@ -69,3 +64,4 @@ module.exports.dev = dev;
 module.exports.deploy = deploy;
 module.exports.watch = watch;
 module.exports['default'] = gulp.series(dev, bundleSimple, deploy);
+module.exports['import'] = sdfcliTasks['import'];
