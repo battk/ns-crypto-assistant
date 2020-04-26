@@ -5,17 +5,8 @@ var fs = require('fs');
 var _ = require('lodash');
 var gulp = require('gulp');
 var readdirPromise = util.promisify(fs.readdir);
-
-function parseSdfFile(sdfContents) {
-	return sdfContents
-		.split(/[\r\n=]+/g)
-		.filter(function(isEmpty) {
-			return !!isEmpty;
-		})
-		.map(function(sdfArgument, index) {
-			return index % 2 ? sdfArgument : '-' + sdfArgument;
-		});
-}
+var authId = require('../package.json').name;
+var cliPath = 'sdf-cli/cli-2020.1.0.jar';
 
 function processDoneListener(command, resolve, reject, value, code, signal) {
 	if (code === 0) {
@@ -36,7 +27,7 @@ function processDoneListener(command, resolve, reject, value, code, signal) {
 
 function generateStdOutTransform(childProcess, stdOutTransformOptions) {
 	if (stdOutTransformOptions.promptString) {
-		return through2.obj(function(chunk, encoding, callback) {
+		return through2.obj(function (chunk, encoding, callback) {
 			if (
 				chunk
 					.toString(encoding)
@@ -47,13 +38,13 @@ function generateStdOutTransform(childProcess, stdOutTransformOptions) {
 			callback();
 		});
 	} else if (stdOutTransformOptions.promiseArrayValue) {
-		return through2.obj(function(chunk, encoding, callback) {
+		return through2.obj(function (chunk, encoding, callback) {
 			stdOutTransformOptions.promiseArrayValue.push.apply(
 				stdOutTransformOptions.promiseArrayValue,
 				chunk
 					.toString(encoding)
 					.split(/[\r\n=]+/g)
-					.filter(function(line) {
+					.filter(function (line) {
 						return line && line.charAt(0) === '/';
 					})
 			);
@@ -82,7 +73,7 @@ function spawnSdfCliProcess(
 	);
 	var sdfCliProcess = spawn(
 		'java',
-		['-jar', 'sdf-cli/cli-2019.2.1.jar', command].concat(cliArguments),
+		['-jar', cliPath, command].concat(cliArguments),
 		processOptions
 	)
 		.on('error', reject)
@@ -102,7 +93,7 @@ function spawnSdfCliProcess(
 }
 
 function addDependencies() {
-	return new Promise(function(resolve, reject) {
+	return new Promise(function (resolve, reject) {
 		spawnSdfCliProcess(
 			'adddependencies',
 			['-p', '.', '-all'],
@@ -117,28 +108,30 @@ function addDependencies() {
 	});
 }
 
-function importFolder(sdfArguments, fileCabinetFolderPath) {
-	return new Promise(function(resolve, reject) {
+function importFolder(fileCabinetFolderPath) {
+	return new Promise(function (resolve, reject) {
 		spawnSdfCliProcess(
 			'listfiles',
-			['-folder', fileCabinetFolderPath].concat(sdfArguments),
+			['-folder', fileCabinetFolderPath, '-authid', authId],
 			{ stdio: ['inherit', 'pipe', 'inherit'] },
 			resolve,
 			reject,
 			{ promiseArrayValue: [] }
 		);
-	}).then(function(fileCabinetPaths) {
+	}).then(function (fileCabinetPaths) {
 		return Promise.all(
 			// there is a maximum length to the arguments that can be passed in a
 			// command. Chunking is a cheap way to try and limit the length
 			// more efficient is to calculate how long the cli arg string is
 			// there is also a limit on the number of listeners on Stream's event
 			// emitter. It may be wise to increase that limit
-			_.chunk(fileCabinetPaths, 256).map(function(chunkOfFileCabinetPaths) {
-				return new Promise(function(resolve, reject) {
+			_.chunk(fileCabinetPaths, 256).map(function (chunkOfFileCabinetPaths) {
+				return new Promise(function (resolve, reject) {
 					spawnSdfCliProcess(
 						'importfiles',
-						['-p', '.', '-paths'].concat(chunkOfFileCabinetPaths),
+						['-p', '.', '-authid', authId, '-paths'].concat(
+							chunkOfFileCabinetPaths
+						),
 						{ stdio: ['pipe', 'pipe', 'inherit'] },
 						resolve,
 						reject,
@@ -154,29 +147,23 @@ function importFolder(sdfArguments, fileCabinetFolderPath) {
 }
 
 function importProjectFiles() {
-	return util
-		.promisify(fs.readFile)('.sdf', 'utf8')
-		.then(function(sdfContents) {
-			var sdfArguments = parseSdfFile(sdfContents);
-
-			return readdirPromise('./FileCabinet/SuiteScripts', {
-				withFileTypes: true,
-			}).then(function(dirents) {
-				return Promise.all(
-					dirents
-						.filter(function(dirent) {
-							return dirent.isDirectory();
-						})
-						.map(function(dirent) {
-							return importFolder(sdfArguments, '/SuiteScripts/' + dirent.name);
-						})
-				);
-			});
-		});
+	return readdirPromise('./FileCabinet/SuiteScripts', {
+		withFileTypes: true,
+	}).then(function (dirents) {
+		return Promise.all(
+			dirents
+				.filter(function (dirent) {
+					return dirent.isDirectory();
+				})
+				.map(function (dirent) {
+					return importFolder('/SuiteScripts/' + dirent.name);
+				})
+		);
+	});
 }
 
 function importObjects(scriptIds) {
-	return new Promise(function(resolve, reject) {
+	return new Promise(function (resolve, reject) {
 		spawnSdfCliProcess(
 			'importobjects',
 			[
@@ -186,6 +173,8 @@ function importObjects(scriptIds) {
 				'ALL',
 				'-destinationfolder',
 				'/Objects',
+				'-authid',
+				authId,
 				'-scriptid',
 			].concat(scriptIds),
 			{ stdio: ['pipe', 'pipe', 'inherit'] },
@@ -200,30 +189,53 @@ function importObjects(scriptIds) {
 }
 
 function importProjectObjects() {
-	return readdirPromise('./Objects').then(function(fileNames) {
+	return readdirPromise('./Objects').then(function (fileNames) {
 		// I dont think chunking the objects is necessary.
 		// your project is insane if it has so many objects
 		return importObjects(
 			fileNames
-				.filter(function(fileName) {
+				.filter(function (fileName) {
 					// this does not support folders
 					return fileName.substring(fileName.length - 4) === '.xml';
 				})
-				.map(function(fileName) {
+				.map(function (fileName) {
 					return fileName.substring(0, fileName.length - 4);
 				})
 		);
 	});
 }
 
-module.exports.deploy = function() {
+module.exports.deploy = function deploy() {
 	// so far, deploy is the only command nice enough to run without babysitting
 	return spawn(
 		'java',
-		['-jar', 'sdf-cli/cli-2019.2.1.jar', 'deploy', '-np', '-sw', '-p', '.'],
+		['-jar', cliPath, 'deploy', '-np', '-sw', '-p', '.', '-authid', authId],
 		{ stdio: ['inherit', 'inherit', 'inherit'] }
 	);
 };
+
+module.exports.authenticate = function authenticate() {
+	return new Promise(function (resolve, reject) {
+		spawnSdfCliProcess(
+			'manageauth',
+			['-remove', authId],
+			{ stdio: ['inherit', 'inherit', 'inherit'] },
+			resolve,
+			reject
+		);
+	}).then(function () {
+		return new Promise(function (resolve, reject) {
+			spawnSdfCliProcess(
+				'authenticate',
+				['-authid', authId],
+				{ stdio: ['inherit', 'inherit', 'inherit'] },
+				resolve,
+				reject
+			);
+		});
+	});
+};
+
 module.exports['import'] = gulp.parallel(
 	importProjectFiles,
 	addDependencies,

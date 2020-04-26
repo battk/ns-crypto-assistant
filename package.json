@@ -4,16 +4,17 @@
 	"dependencies": {
 		"chai": "^4.2.0",
 		"define": "^1.0.1",
-		"eslint-config-prettier": "^6.9.0",
+		"eslint-config-prettier": "^6.11.0",
 		"gulp": "^4.0.2",
 		"gulp-eslint": "^6.0.0",
 		"gulp-if": "^3.0.0",
 		"gulp-ignore": "^3.0.0",
 		"gulp-mocha": "^7.0.2",
-		"gulp-prettier": "^2.3.0",
+		"gulp-prettier": "^3.0.0",
 		"lodash": "^4.17.15",
-		"qs": "^6.9.1",
-		"sinon": "^8.0.4",
+		"mocha": "^6.2.0",
+		"sinon": "^9.0.0",
 		"through2": "^3.0.1"
-	}
+	},
+	"devDependencies": {}
 }
